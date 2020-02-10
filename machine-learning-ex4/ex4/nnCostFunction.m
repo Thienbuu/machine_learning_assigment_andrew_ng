@@ -65,21 +65,49 @@ Theta2_grad = zeros(size(Theta2));
 % Theta1: 25x401
 % Theta2: 10x26
 
-a1 = [ones(m,1) X];
+X = [ones(m,1) X];
+
+a1 = X;
 a2 = sigmoid(a1 * Theta1');
 a2 = [ones(m,1) a2];
 a3 = sigmoid(a2 * Theta2');
 
-y = repmat([1:num_labels], m, 1) == 
+# Calculate unregularization cost function
+y = repmat([1:num_labels], m, 1) == repmat(y, 1, 1);
 J = J + sum(sum(-y.*log(a3) - (1-y).*log(1-a3)))./m;
 
-regularization = lambda*(sum(sum(Theta1(:,2:end).^2)) + sum(sum(Theta2(:,2:end).^2)))./(2*m);
-J = J + regularization;
+# Add regularization to cost function
+reg = lambda*(sum(sum(Theta1(:,2:end).^2)) + sum(sum(Theta2(:,2:end).^2)))./(2*m);
+J = J + reg;
 
+delta3 = zeros(size(Theta2));
+delta2 = zeros(size(Theta1));
 
+# gradient descent with backpropagation
+for i = 1:m
+  # Step 1: calculate feedfoward
+  a1 = X(i, :); # a1 = 1x401
+  a2 = sigmoid(a1 * Theta1'); # a2 = 1x25
+  a2 = [ones(1,1) a2]; # a2 = 1x26 (add bias 1)
+  a3 = sigmoid(a2 * Theta2'); # a3 = 1x10
+  
+  # Step 2: calculate output layer error
+  delta3 = a3 - y(i,:); # delta3 = 1x10
+  
+  # Step 3: calculcate hidden layer error
+  delta2 = (delta3 * Theta2) .* (a2 .* (1 - a2)); # delta2 = 1x26
+  delta2 = delta2(:, 2:end);
+  
+  # Step 4: Calculate delta
+  Theta1_grad = Theta1_grad + delta2'*a1; #25x401 + (25x1)*(1x401)
+  Theta2_grad = Theta2_grad + delta3'*a2; #10x26 + (10x1)*(1x26)
+endfor
 
+Theta1_grad = Theta1_grad./m; # 25x401
+Theta2_grad = Theta2_grad./m; # 10x26
 
-
+Theta1_grad(:,2:end) = Theta1_grad(:,2:end) + Theta1(:,2:end)*(lambda./m);
+Theta2_grad(:,2:end) = Theta2_grad(:,2:end) + Theta2(:,2:end)*(lambda./m);
 
 
 
